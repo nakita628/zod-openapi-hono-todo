@@ -1,0 +1,17 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "zod-openapi-hono-todo",
+  "entryPoints": [
+    "src/api/routes/index.ts",
+    "src/api/handlers/todos.ts",
+    "src/api/usecases/todos.ts",
+    "src/api/services/todos.ts",
+    "src/api/errors/index.ts",
+    "src/db/schema.ts"
+  ],
+  "out": "typedoc",
+  "plugin": ["typedoc-plugin-mermaid"],
+  "highlightLanguages": ["typescript", "tsx", "javascript", "json", "jsonc", "sql", "bash"],
+  "excludeInternal": true,
+  "githubPages": false
+}
