@@ -1,6 +1,4 @@
-import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { Scalar } from '@scalar/hono-api-reference'
 
 import {
   deleteTodosTodoIdRouteHandler,
@@ -60,30 +58,3 @@ export const api = app
   .openapi(getTodosTodoIdRoute, getTodosTodoIdRouteHandler)
   .openapi(patchTodosTodoIdRoute, patchTodosTodoIdRouteHandler)
   .openapi(deleteTodosTodoIdRoute, deleteTodosTodoIdRouteHandler)
-
-if (import.meta.env.DEV) {
-  api.doc('/doc', {
-    info: {
-      title: 'Todo API',
-      version: '1.0.0',
-    },
-    openapi: '3.1.0',
-  })
-
-  app.get('/ui', swaggerUI({ url: '/api/doc' }))
-
-  app.get('/scalar', Scalar({ url: '/api/doc' }))
-
-  const content = app.getOpenAPI31Document({
-    openapi: '3.1.0',
-    info: {
-      title: 'Todo API',
-      version: '1.0.0',
-    },
-  })
-
-  app.get('/llms.txt', async (c) => {
-    const { createMarkdownFromOpenApi } = await import('@scalar/openapi-to-markdown')
-    return c.text(await createMarkdownFromOpenApi(JSON.stringify(content)))
-  })
-}

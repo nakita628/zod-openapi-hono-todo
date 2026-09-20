@@ -5,6 +5,8 @@ Cloudflare Workers + D1 + React SPA。
 
 ![demo](./todo.gif)
 
+[ドキュメント](https://nakita628.github.io/zod-openapi-hono-todo/index.html)（TypeDoc / `pnpm typedoc`）
+
 ## Getting started
 
 ```sh

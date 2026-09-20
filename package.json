@@ -33,10 +33,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.56.0",
-    "@hono/swagger-ui": "0.6.1",
     "@playwright/test": "1.63.0",
-    "@scalar/hono-api-reference": "0.12.2",
-    "@scalar/openapi-to-markdown": "1.0.1",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-query-devtools": "5.103.1",
     "@tanstack/react-router-devtools": "1.167.2",
