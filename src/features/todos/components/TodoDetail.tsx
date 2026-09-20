@@ -14,24 +14,30 @@ const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString('ja-JP', { dateStyle: 'medium', timeStyle: 'short' })
 
 export function TodoDetail({ todoId }: { todoId: string }) {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data: todo } = useSuspenseTodosTodoId({ param: { todoId } })
+  const navigate = useNavigate()
+
   const invalidate = {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: getTodosKey() }),
   }
-  const patch = usePatchTodosTodoId({
-    mutation: { ...invalidate, onError: () => toast.error('更新に失敗しました') },
-  })
-  const remove = useDeleteTodosTodoId({
-    mutation: {
-      onSuccess: () => {
-        void queryClient.invalidateQueries({ queryKey: getTodosKey() })
-        void navigate({ to: '/' })
+  const { data: todo } = useSuspenseTodosTodoId({ param: { todoId } })
+  const patch = usePatchTodosTodoId({ mutation: invalidate })
+  const del = useDeleteTodosTodoId({ mutation: invalidate })
+
+  const toggle = () =>
+    patch.mutate(
+      { param: { todoId: todo.id }, json: { completed: !todo.completed } },
+      { onError: () => toast.error('更新に失敗しました') },
+    )
+
+  const remove = () =>
+    del.mutate(
+      { param: { todoId: todo.id } },
+      {
+        onSuccess: () => void navigate({ to: '/' }),
+        onError: () => toast.error('削除に失敗しました'),
       },
-      onError: () => toast.error('削除に失敗しました'),
-    },
-  })
+    )
 
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
@@ -78,19 +84,10 @@ export function TodoDetail({ todoId }: { todoId: string }) {
         </dl>
 
         <div className="mt-8 flex items-center gap-2 border-t border-slate-100 pt-6">
-          <Button
-            onClick={() =>
-              patch.mutate({ param: { todoId: todo.id }, json: { completed: !todo.completed } })
-            }
-            disabled={patch.isPending}
-          >
+          <Button onClick={toggle} disabled={patch.isPending}>
             {todo.completed ? '未完了にする' : '完了にする'}
           </Button>
-          <Button
-            variant="danger"
-            onClick={() => remove.mutate({ param: { todoId: todo.id } })}
-            disabled={remove.isPending}
-          >
+          <Button variant="danger" onClick={remove} disabled={del.isPending}>
             削除
           </Button>
         </div>

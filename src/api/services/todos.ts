@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi'
 import { desc, eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 
@@ -27,6 +28,8 @@ import { todos } from '@/db'
  * FROM todos
  * ORDER BY createdAt DESC, id DESC
  * ```
+ *
+ * @returns Todo の全行。`createdAt` / `updatedAt` は `Date` にデコードされる（timestamp_ms モード）。
  */
 export function readTodos() {
   return Effect.tryPromise({
@@ -34,6 +37,19 @@ export function readTodos() {
     catch: (cause) => new DatabaseError({ cause }),
   })
 }
+
+const ReadTodoInput = z
+  .object({
+    todoId: z.string().brand<'TodoId'>().meta({
+      description: 'Todo ID（サーバーが発行する cuid2、英数字 24 文字）。',
+      example: 'tz4a98xxat96iws9zmbrgj3a',
+    }),
+  })
+  .readonly()
+  .meta({
+    description: 'Todo を 1 件取得するための入力',
+    example: { todoId: 'tz4a98xxat96iws9zmbrgj3a' },
+  })
 
 /**
  * 主キーを指定して Todo を 1 件取得する。
@@ -57,13 +73,25 @@ export function readTodos() {
  * WHERE id = ?
  * LIMIT 1
  * ```
+ *
+ * @param input - todoId: Todo の主キー（サーバー発行の cuid2）
+ * @returns 該当する Todo の行。該当なしなら `undefined`。
  */
-export function readTodo(id: string) {
+export function readTodo(input: z.infer<typeof ReadTodoInput>) {
   return Effect.tryPromise({
-    try: () => db.select().from(todos).where(eq(todos.id, id)).get(),
+    try: () => db.select().from(todos).where(eq(todos.id, input.todoId)).get(),
     catch: (cause) => new DatabaseError({ cause }),
   })
 }
+
+const CreateTodoInput = z
+  .object({
+    title: z
+      .string()
+      .meta({ description: '一覧とリンクに表示される見出し。', example: '牛乳を買う' }),
+  })
+  .readonly()
+  .meta({ description: 'Todo を作成するための入力', example: { title: '牛乳を買う' } })
 
 /**
  * Todo を 1 件挿入し、作成された行を返す。
@@ -88,13 +116,34 @@ export function readTodo(id: string) {
  * VALUES (?, ?, ?, (unixepoch() * 1000), (unixepoch() * 1000))
  * RETURNING *
  * ```
+ *
+ * @param input - title: タイトル（やること）
+ * @returns 挿入された Todo の行（`RETURNING *`）。`createdAt` / `updatedAt` は `Date`。
  */
-export function createTodo(values: { title: string }) {
+export function createTodo(input: z.infer<typeof CreateTodoInput>) {
   return Effect.tryPromise({
-    try: () => db.insert(todos).values(values).returning().get(),
+    try: () => db.insert(todos).values({ title: input.title }).returning().get(),
     catch: (cause) => new DatabaseError({ cause }),
   })
 }
+
+const UpdateTodoInput = z
+  .object({
+    todoId: z.string().brand<'TodoId'>().meta({
+      description: 'Todo ID（サーバーが発行する cuid2、英数字 24 文字）。',
+      example: 'tz4a98xxat96iws9zmbrgj3a',
+    }),
+    title: z
+      .string()
+      .exactOptional()
+      .meta({ description: '一覧とリンクに表示される見出し。', example: '牛乳を買う' }),
+    completed: z.boolean().exactOptional().meta({ description: '完了フラグ。', example: true }),
+  })
+  .readonly()
+  .meta({
+    description: 'Todo を部分更新するための入力 — 存在するフィールドだけが変わる',
+    example: { todoId: 'tz4a98xxat96iws9zmbrgj3a', completed: true },
+  })
 
 /**
  * Todo を部分更新し、更新後の行を返す。
@@ -120,19 +169,37 @@ export function createTodo(values: { title: string }) {
  * WHERE id = ?
  * RETURNING *
  * ```
+ *
+ * @param input - todoId と変更するフィールド。省略したキーはそのまま残る
+ * @returns 更新後の Todo の行。該当なしなら `undefined`。
  */
-export function updateTodo(id: string, values: { title?: string; completed?: boolean }) {
+export function updateTodo(input: z.infer<typeof UpdateTodoInput>) {
   return Effect.tryPromise({
-    try: () =>
-      db
+    try: () => {
+      const { todoId, ...values } = input
+      return db
         .update(todos)
         .set({ ...values, updatedAt: new Date() })
-        .where(eq(todos.id, id))
+        .where(eq(todos.id, todoId))
         .returning()
-        .get(),
+        .get()
+    },
     catch: (cause) => new DatabaseError({ cause }),
   })
 }
+
+const DeleteTodoInput = z
+  .object({
+    todoId: z.string().brand<'TodoId'>().meta({
+      description: 'Todo ID（サーバーが発行する cuid2、英数字 24 文字）。',
+      example: 'tz4a98xxat96iws9zmbrgj3a',
+    }),
+  })
+  .readonly()
+  .meta({
+    description: 'Todo を削除するための入力',
+    example: { todoId: 'tz4a98xxat96iws9zmbrgj3a' },
+  })
 
 /**
  * Todo を 1 件削除し、その id を返す。
@@ -155,10 +222,13 @@ export function updateTodo(id: string, values: { title?: string; completed?: boo
  * WHERE id = ?
  * RETURNING id
  * ```
+ *
+ * @param input - todoId: Todo の主キー（サーバー発行の cuid2）
+ * @returns 削除した行の `{ id }`。該当なしなら `undefined`。
  */
-export function deleteTodo(id: string) {
+export function deleteTodo(input: z.infer<typeof DeleteTodoInput>) {
   return Effect.tryPromise({
-    try: () => db.delete(todos).where(eq(todos.id, id)).returning({ id: todos.id }).get(),
+    try: () => db.delete(todos).where(eq(todos.id, input.todoId)).returning({ id: todos.id }).get(),
     catch: (cause) => new DatabaseError({ cause }),
   })
 }

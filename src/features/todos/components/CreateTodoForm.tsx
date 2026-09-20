@@ -9,14 +9,19 @@ export function CreateTodoForm() {
   const create = usePostTodos({
     mutation: {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: getTodosKey() }),
-      onError: () => toast.error('追加に失敗しました'),
     },
   })
 
   const action = async (formData: FormData) => {
     const title = formData.get('title')
-    if (typeof title !== 'string') return
-    await create.mutateAsync({ json: { title } }).catch(() => undefined)
+    if (typeof title !== 'string') {
+      return
+    }
+    try {
+      await create.mutateAsync({ json: { title } })
+    } catch {
+      toast.error('追加に失敗しました')
+    }
   }
 
   return (
@@ -24,8 +29,9 @@ export function CreateTodoForm() {
       <input
         name="title"
         type="text"
-        required
         placeholder="なにをする？"
+        required
+        pattern=".*\S.*"
         maxLength={200}
         autoComplete="off"
         className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"

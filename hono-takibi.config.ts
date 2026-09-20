@@ -19,7 +19,6 @@ export default defineConfig({
     routeHandler: true,
   },
   exportSchemas: true,
-  exportSchemasTypes: true,
   docs: {
     output: 'api.md',
     curl: true,

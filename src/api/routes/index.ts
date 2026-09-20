@@ -9,8 +9,6 @@ export const TodoIdSchema = z
   })
   .openapi('TodoId')
 
-export type TodoId = z.infer<typeof TodoIdSchema>
-
 export const TodoSchema = z
   .object({
     id: TodoIdSchema.openapi({ description: 'Todo ID' }),
@@ -38,14 +36,10 @@ export const TodoSchema = z
   })
   .openapi('Todo')
 
-export type Todo = z.infer<typeof TodoSchema>
-
 export const TodoListSchema = z
   .array(TodoSchema)
   .openapi({ description: 'Todo 一覧（新しい順）' })
   .openapi('TodoList')
-
-export type TodoList = z.infer<typeof TodoListSchema>
 
 export const InternalServerProblemSchema = z
   .object({
@@ -78,8 +72,6 @@ export const InternalServerProblemSchema = z
   })
   .openapi('InternalServerProblem')
 
-export type InternalServerProblem = z.infer<typeof InternalServerProblemSchema>
-
 export const ServiceUnavailableProblemSchema = z
   .object({
     type: z
@@ -110,8 +102,6 @@ export const ServiceUnavailableProblemSchema = z
     },
   })
   .openapi('ServiceUnavailableProblem')
-
-export type ServiceUnavailableProblem = z.infer<typeof ServiceUnavailableProblemSchema>
 
 export const NotFoundProblemSchema = z
   .object({
@@ -144,8 +134,6 @@ export const NotFoundProblemSchema = z
   })
   .openapi('NotFoundProblem')
 
-export type NotFoundProblem = z.infer<typeof NotFoundProblemSchema>
-
 export const FieldErrorSchema = z
   .object({
     field: z.string().openapi({ description: 'エラーが発生したフィールドのドット区切りパス' }),
@@ -157,8 +145,6 @@ export const FieldErrorSchema = z
     example: { field: 'title', message: 'タイトルは必須です' },
   })
   .openapi('FieldError')
-
-export type FieldError = z.infer<typeof FieldErrorSchema>
 
 export const ValidationProblemSchema = z
   .object({
@@ -197,8 +183,6 @@ export const ValidationProblemSchema = z
   })
   .openapi('ValidationProblem')
 
-export type ValidationProblem = z.infer<typeof ValidationProblemSchema>
-
 export const CreateTodoRequestSchema = z
   .object({
     title: z
@@ -214,8 +198,6 @@ export const CreateTodoRequestSchema = z
     example: { title: '牛乳を買う' },
   })
   .openapi('CreateTodoRequest')
-
-export type CreateTodoRequest = z.infer<typeof CreateTodoRequestSchema>
 
 export const UpdateTodoRequestSchema = z
   .object({
@@ -234,8 +216,6 @@ export const UpdateTodoRequestSchema = z
     example: { title: 'オーツミルクを買う', completed: true },
   })
   .openapi('UpdateTodoRequest')
-
-export type UpdateTodoRequest = z.infer<typeof UpdateTodoRequestSchema>
 
 export const getTodosRoute = createRoute({
   method: 'get',

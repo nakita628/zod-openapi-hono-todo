@@ -51,7 +51,7 @@ test('一覧で Todo を完了にして削除する', async ({ page }) => {
   await page.goto('/')
   await createTodo(page, title)
 
-  const item = page.locator('li').filter({ hasText: title })
+  const item = page.getByRole('listitem').filter({ hasText: title })
   await item.getByRole('checkbox').click()
   await expect(item.getByRole('checkbox')).toBeChecked()
   await expect(item.getByRole('link')).toHaveClass(/line-through/)
