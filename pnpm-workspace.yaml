@@ -1,0 +1,18 @@
+allowBuilds:
+  # prisma は hekireki のジェネレータを回すためだけに使うので engines は不要。
+  '@prisma/engines': false
+  prisma: false
+  msgpackr-extract: false
+  '@scarf/scarf': false
+  vue-demi: true
+  core-js: false
+  core-js-pure: false
+  esbuild: true
+  sharp: true
+  workerd: true
+
+minimumReleaseAge: 0
+
+# storeDir on native fs avoids virtiofs ESTALE (-116); childConcurrency serializes builds against OOM.
+storeDir: /home/node/.pnpm-store-native
+childConcurrency: 1
