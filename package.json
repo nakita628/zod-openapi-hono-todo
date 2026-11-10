@@ -5,16 +5,14 @@
   "scripts": {
     "dev": "vp dev --host --port 8787",
     "build": "vp build",
-    "deploy": "vp build && wrangler deploy",
-    "preview": "wrangler dev",
+    "deploy": "cf deploy",
+    "preview": "vp preview --port 8787",
     "check": "vp check --fix",
     "test:e2e": "playwright test",
     "takibi": "hono-takibi",
     "generate": "drizzle-kit generate",
-    "push": "drizzle-kit push",
-    "migrate": "drizzle-kit migrate",
-    "local:migrate": "wrangler d1 migrations apply DB --local",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "local:migrate": "cf d1 migrations apply 00000000000000000000000000000000 --local --persist-to .cloudflare/state",
+    "remote:migrate": "cf d1 migrations apply 00000000000000000000000000000000",
     "typedoc": "typedoc"
   },
   "dependencies": {
@@ -31,7 +29,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.56.0",
+    "@cloudflare/vite-plugin": "2.0.0-beta.v.13",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-query-devtools": "5.103.1",
@@ -43,16 +41,15 @@
     "@typespec/openapi": "1.16.0",
     "@typespec/openapi3": "1.16.0",
     "@vitejs/plugin-react": "6.1.1",
-    "dotenv": "18.0.1",
+    "cf": "1.0.0-beta.28",
     "drizzle-kit": "0.31.10",
-    "hekireki": "0.30.0",
-    "hono-takibi": "0.14.0",
+    "hekireki": "0.45.0",
+    "hono-takibi": "0.30.0",
     "prisma": "7.10.0",
     "tailwindcss": "4.3.3",
     "typedoc": "0.28.20",
     "typedoc-plugin-mermaid": "1.12.0",
-    "vite-plus": "0.3.3",
-    "wrangler": "4.135.0"
+    "vite-plus": "0.3.3"
   },
   "devEngines": {
     "packageManager": {

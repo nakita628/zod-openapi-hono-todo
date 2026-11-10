@@ -1,8 +1,7 @@
 import { z } from '@hono/zod-openapi'
 import { Effect } from 'effect'
 
-import { ContractViolationError, NotFoundError } from '@/api/errors'
-import { TodoListSchema, TodoSchema } from '@/api/routes'
+import { NotFoundError } from '@/api/errors'
 import * as TodoService from '@/api/services'
 
 /**
@@ -14,20 +13,14 @@ import * as TodoService from '@/api/services'
  *   participant S as TodoService (D1)
  *   U->>S: readTodos()
  *   S-->>U: rows (Date timestamps)
- *   Note over U: TodoListSchema.safeParse(...) が Date → ISO へ変換;<br/>不一致なら ContractViolationError で失敗（→ 500）
  * ```
  *
- * @returns レスポンス検証済みの Todo 一覧。スキーマの日付コーデックが各 `createdAt` /
- *   `updatedAt` の `Date` をワイヤ上の ISO 8601 文字列へ変換する。
+ * @returns Todo の全行（`createdAt` / `updatedAt` は `Date`）。ワイヤ表現への変換と
+ *   レスポンス検証はハンドラが行う。
  */
 export function readTodos() {
   return Effect.gen(function* () {
-    const todoList = yield* TodoService.readTodos()
-    const result = TodoListSchema.safeParse(todoList)
-    if (!result.success) {
-      return yield* Effect.fail(new ContractViolationError({ message: result.error.message }))
-    }
-    return result.data
+    return yield* TodoService.readTodos()
   })
 }
 
@@ -38,6 +31,7 @@ const ReadTodoInput = z
       example: 'tz4a98xxat96iws9zmbrgj3a',
     }),
   })
+  .readonly()
   .meta({
     description: 'Todo を 1 件取得するための入力',
     example: { todoId: 'tz4a98xxat96iws9zmbrgj3a' },
@@ -55,13 +49,13 @@ const ReadTodoInput = z
  *   alt 見つからない
  *     U-->>U: NotFoundError で失敗（→ 404）
  *   else 見つかった
- *     Note over U: TodoSchema.safeParse(...) が Date → ISO へ変換;<br/>不一致なら ContractViolationError で失敗（→ 500）
+ *     U-->>U: row
  *   end
  * ```
  *
  * @param input - パスパラメータ
  * @param input.todoId - Todo の id（brand 付き `TodoId`）
- * @returns レスポンス検証済みの Todo。
+ * @returns Todo の行。レスポンス検証はハンドラが行う。
  * @throws NotFoundError - その id の Todo が無いとき（→ 404）。
  */
 export function readTodo(input: z.infer<typeof ReadTodoInput>) {
@@ -70,11 +64,7 @@ export function readTodo(input: z.infer<typeof ReadTodoInput>) {
     if (todo === undefined) {
       return yield* Effect.fail(new NotFoundError({ message: 'Todo が見つかりません' }))
     }
-    const result = TodoSchema.safeParse(todo)
-    if (!result.success) {
-      return yield* Effect.fail(new ContractViolationError({ message: result.error.message }))
-    }
-    return result.data
+    return todo
   })
 }
 
@@ -84,6 +74,7 @@ const CreateTodoInput = z
       .string()
       .meta({ description: '一覧とリンクに表示される見出し。', example: '牛乳を買う' }),
   })
+  .readonly()
   .meta({ description: 'Todo を作成するための入力', example: { title: '牛乳を買う' } })
 
 /**
@@ -95,21 +86,16 @@ const CreateTodoInput = z
  *   participant S as TodoService (D1)
  *   U->>S: createTodo({ title })
  *   S-->>U: created row (INSERT ... RETURNING *)
- *   Note over U: TodoSchema.safeParse(...) が Date → ISO へ変換;<br/>不一致なら ContractViolationError で失敗（→ 500）
  * ```
  *
  * @param input - リクエストボディ
  * @param input.title - タイトル（やること）
- * @returns レスポンス検証済みの、作成された Todo。
+ * @returns 作成された Todo の行。レスポンス検証はハンドラが行う。
  */
 export function createTodo(input: z.infer<typeof CreateTodoInput>) {
   return Effect.gen(function* () {
     const todo = yield* TodoService.createTodo({ title: input.title })
-    const result = TodoSchema.safeParse(todo)
-    if (!result.success) {
-      return yield* Effect.fail(new ContractViolationError({ message: result.error.message }))
-    }
-    return result.data
+    return todo
   })
 }
 
@@ -125,6 +111,7 @@ const UpdateTodoInput = z
       .meta({ description: '一覧とリンクに表示される見出し。', example: '牛乳を買う' }),
     completed: z.boolean().exactOptional().meta({ description: '完了フラグ。', example: true }),
   })
+  .readonly()
   .meta({
     description: 'Todo を部分更新するための入力 — ボディに存在するフィールドだけが変わる',
     example: { todoId: 'tz4a98xxat96iws9zmbrgj3a', completed: true },
@@ -143,7 +130,7 @@ const UpdateTodoInput = z
  *   alt 見つからない
  *     U-->>U: NotFoundError で失敗（→ 404）
  *   else 更新した
- *     Note over U: TodoSchema.safeParse(...) が Date → ISO へ変換;<br/>不一致なら ContractViolationError で失敗（→ 500）
+ *     U-->>U: row
  *   end
  * ```
  *
@@ -151,22 +138,17 @@ const UpdateTodoInput = z
  * @param input.todoId - Todo の id（brand 付き `TodoId`）
  * @param input.title - 変更する場合の新しいタイトル
  * @param input.completed - 変更する場合の新しい完了フラグ
- * @returns レスポンス検証済みの更新後 Todo。
+ * @returns 更新後の Todo の行。レスポンス検証はハンドラが行う。
  * @throws NotFoundError - その id の Todo が無いとき（→ 404）。
  */
 export function updateTodo(input: z.infer<typeof UpdateTodoInput>) {
   return Effect.gen(function* () {
     const { todoId, ...values } = input
-
     const todo = yield* TodoService.updateTodo({ todoId, ...values })
     if (todo === undefined) {
       return yield* Effect.fail(new NotFoundError({ message: 'Todo が見つかりません' }))
     }
-    const result = TodoSchema.safeParse(todo)
-    if (!result.success) {
-      return yield* Effect.fail(new ContractViolationError({ message: result.error.message }))
-    }
-    return result.data
+    return todo
   })
 }
 
@@ -177,6 +159,7 @@ const DeleteTodoInput = z
       example: 'tz4a98xxat96iws9zmbrgj3a',
     }),
   })
+  .readonly()
   .meta({
     description: 'Todo を削除するための入力',
     example: { todoId: 'tz4a98xxat96iws9zmbrgj3a' },

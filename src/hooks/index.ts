@@ -15,7 +15,7 @@ import type {
 import type { ClientRequestOptions, InferRequestType } from 'hono/client'
 import { parseResponse } from 'hono/client'
 
-import { client } from '@/lib'
+import { client } from '../lib'
 
 export function getTodosKey() {
   return ['todos'] as const

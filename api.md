@@ -35,13 +35,37 @@ Todo を一覧する（新しい順）。
 ]
 ```
 
+> 500 Response
+
+```json
+{
+  "type": "/problems/internal-server-error",
+  "title": "サーバー内部エラー",
+  "status": 500,
+  "detail": "予期しないエラーが発生しました。",
+  "instance": "/api/todos"
+}
+```
+
+> 503 Response
+
+```json
+{
+  "type": "/problems/service-unavailable",
+  "title": "サービス利用不可",
+  "status": 503,
+  "detail": "サービスが一時的に利用できません。時間をおいて再試行してください。",
+  "instance": "/api/todos"
+}
+```
+
 <h3 id="readtodos-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|OK|The request has succeeded.|[TodoList](#schematodolist)|
-|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|None|
-|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|None|
+|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|[InternalServerProblem](#schemainternalserverproblem)|
+|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|[ServiceUnavailableProblem](#schemaserviceunavailableproblem)|
 
 <aside class="success">
 This operation does not require authentication
@@ -96,14 +120,56 @@ Todo を作成する。
 }
 ```
 
+> 422 Response
+
+```json
+{
+  "type": "/problems/validation-failed",
+  "title": "検証に失敗しました",
+  "status": 422,
+  "detail": "リクエストの検証に失敗しました。問題のあったフィールドは `errors` を参照してください。",
+  "instance": "/api/todos",
+  "errors": [
+    {
+      "field": "title",
+      "message": "タイトルは必須です"
+    }
+  ]
+}
+```
+
+> 500 Response
+
+```json
+{
+  "type": "/problems/internal-server-error",
+  "title": "サーバー内部エラー",
+  "status": 500,
+  "detail": "予期しないエラーが発生しました。",
+  "instance": "/api/todos"
+}
+```
+
+> 503 Response
+
+```json
+{
+  "type": "/problems/service-unavailable",
+  "title": "サービス利用不可",
+  "status": 503,
+  "detail": "サービスが一時的に利用できません。時間をおいて再試行してください。",
+  "instance": "/api/todos"
+}
+```
+
 <h3 id="createtodo-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |201|Created|The request has succeeded and a new resource has been created as a result.|[Todo](#schematodo)|
-|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|None|
-|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|None|
-|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|None|
+|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|[ValidationProblem](#schemavalidationproblem)|
+|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|[InternalServerProblem](#schemainternalserverproblem)|
+|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|[ServiceUnavailableProblem](#schemaserviceunavailableproblem)|
 
 <aside class="success">
 This operation does not require authentication
@@ -116,7 +182,7 @@ This operation does not require authentication
 > Code samples
 
 ```bash
-curl 'http://localhost:8787/api/todos/{todoId}' \
+curl http://localhost:8787/api/todos/string \
   -H 'Accept: application/json'
 ```
 
@@ -144,15 +210,69 @@ Todo を 1 件取得する。存在しなければ 404。
 }
 ```
 
+> 404 Response
+
+```json
+{
+  "type": "/problems/not-found",
+  "title": "見つかりません",
+  "status": 404,
+  "detail": "Todo が見つかりません",
+  "instance": "/api/todos/kx9a2b3c4d5e6f7g8h9i0j1k"
+}
+```
+
+> 422 Response
+
+```json
+{
+  "type": "/problems/validation-failed",
+  "title": "検証に失敗しました",
+  "status": 422,
+  "detail": "リクエストの検証に失敗しました。問題のあったフィールドは `errors` を参照してください。",
+  "instance": "/api/todos",
+  "errors": [
+    {
+      "field": "title",
+      "message": "タイトルは必須です"
+    }
+  ]
+}
+```
+
+> 500 Response
+
+```json
+{
+  "type": "/problems/internal-server-error",
+  "title": "サーバー内部エラー",
+  "status": 500,
+  "detail": "予期しないエラーが発生しました。",
+  "instance": "/api/todos"
+}
+```
+
+> 503 Response
+
+```json
+{
+  "type": "/problems/service-unavailable",
+  "title": "サービス利用不可",
+  "status": 503,
+  "detail": "サービスが一時的に利用できません。時間をおいて再試行してください。",
+  "instance": "/api/todos"
+}
+```
+
 <h3 id="readtodo-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|OK|The request has succeeded.|[Todo](#schematodo)|
-|404|Not Found|404 Not Found（`application/problem+json`）|None|
-|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|None|
-|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|None|
-|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|None|
+|404|Not Found|404 Not Found（`application/problem+json`）|[NotFoundProblem](#schemanotfoundproblem)|
+|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|[ValidationProblem](#schemavalidationproblem)|
+|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|[InternalServerProblem](#schemainternalserverproblem)|
+|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|[ServiceUnavailableProblem](#schemaserviceunavailableproblem)|
 
 <aside class="success">
 This operation does not require authentication
@@ -165,8 +285,9 @@ This operation does not require authentication
 > Code samples
 
 ```bash
-curl 'http://localhost:8787/api/todos/{todoId}' \
-  -X DELETE
+curl http://localhost:8787/api/todos/string \
+  -X DELETE \
+  -H 'Accept: application/problem+json'
 ```
 
 `DELETE /todos/{todoId}`
@@ -179,15 +300,71 @@ Todo を削除する。存在しなければ 404。
 |---|---|---|---|---|
 |todoId|path|[todoId](#schematodoid)|true|none|
 
+> Example responses
+
+> 404 Response
+
+```json
+{
+  "type": "/problems/not-found",
+  "title": "見つかりません",
+  "status": 404,
+  "detail": "Todo が見つかりません",
+  "instance": "/api/todos/kx9a2b3c4d5e6f7g8h9i0j1k"
+}
+```
+
+> 422 Response
+
+```json
+{
+  "type": "/problems/validation-failed",
+  "title": "検証に失敗しました",
+  "status": 422,
+  "detail": "リクエストの検証に失敗しました。問題のあったフィールドは `errors` を参照してください。",
+  "instance": "/api/todos",
+  "errors": [
+    {
+      "field": "title",
+      "message": "タイトルは必須です"
+    }
+  ]
+}
+```
+
+> 500 Response
+
+```json
+{
+  "type": "/problems/internal-server-error",
+  "title": "サーバー内部エラー",
+  "status": 500,
+  "detail": "予期しないエラーが発生しました。",
+  "instance": "/api/todos"
+}
+```
+
+> 503 Response
+
+```json
+{
+  "type": "/problems/service-unavailable",
+  "title": "サービス利用不可",
+  "status": 503,
+  "detail": "サービスが一時的に利用できません。時間をおいて再試行してください。",
+  "instance": "/api/todos"
+}
+```
+
 <h3 id="deletetodo-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |204|No Content|There is no content to send for this request, but the headers may be useful. |None|
-|404|Not Found|404 Not Found（`application/problem+json`）|None|
-|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|None|
-|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|None|
-|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|None|
+|404|Not Found|404 Not Found（`application/problem+json`）|[NotFoundProblem](#schemanotfoundproblem)|
+|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|[ValidationProblem](#schemavalidationproblem)|
+|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|[InternalServerProblem](#schemainternalserverproblem)|
+|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|[ServiceUnavailableProblem](#schemaserviceunavailableproblem)|
 
 <aside class="success">
 This operation does not require authentication
@@ -200,7 +377,7 @@ This operation does not require authentication
 > Code samples
 
 ```bash
-curl 'http://localhost:8787/api/todos/{todoId}' \
+curl http://localhost:8787/api/todos/string \
   -X PATCH \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json' \
@@ -246,15 +423,69 @@ Todo を部分更新する（タイトル / 完了フラグ）。存在しなけ
 }
 ```
 
+> 404 Response
+
+```json
+{
+  "type": "/problems/not-found",
+  "title": "見つかりません",
+  "status": 404,
+  "detail": "Todo が見つかりません",
+  "instance": "/api/todos/kx9a2b3c4d5e6f7g8h9i0j1k"
+}
+```
+
+> 422 Response
+
+```json
+{
+  "type": "/problems/validation-failed",
+  "title": "検証に失敗しました",
+  "status": 422,
+  "detail": "リクエストの検証に失敗しました。問題のあったフィールドは `errors` を参照してください。",
+  "instance": "/api/todos",
+  "errors": [
+    {
+      "field": "title",
+      "message": "タイトルは必須です"
+    }
+  ]
+}
+```
+
+> 500 Response
+
+```json
+{
+  "type": "/problems/internal-server-error",
+  "title": "サーバー内部エラー",
+  "status": 500,
+  "detail": "予期しないエラーが発生しました。",
+  "instance": "/api/todos"
+}
+```
+
+> 503 Response
+
+```json
+{
+  "type": "/problems/service-unavailable",
+  "title": "サービス利用不可",
+  "status": 503,
+  "detail": "サービスが一時的に利用できません。時間をおいて再試行してください。",
+  "instance": "/api/todos"
+}
+```
+
 <h3 id="updatetodo-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|OK|The request has succeeded.|[Todo](#schematodo)|
-|404|Not Found|404 Not Found（`application/problem+json`）|None|
-|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|None|
-|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|None|
-|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|None|
+|404|Not Found|404 Not Found（`application/problem+json`）|[NotFoundProblem](#schemanotfoundproblem)|
+|422|Unprocessable Entity|422 Unprocessable Content（`application/problem+json`）。OpenAPIHono の defaultHook が返す|[ValidationProblem](#schemavalidationproblem)|
+|500|Internal Server Error|500 Internal Server Error（`application/problem+json`）|[InternalServerProblem](#schemainternalserverproblem)|
+|503|Service Unavailable|503 Service Unavailable（`application/problem+json`）|[ServiceUnavailableProblem](#schemaserviceunavailableproblem)|
 
 <aside class="success">
 This operation does not require authentication
@@ -273,6 +504,8 @@ This operation does not require authentication
 "string"
 ```
 
+Todo ID（サーバーが発行する cuid2、英数字 24 文字）。パスパラメータの取り違えを防ぐため brand する。
+
 <h2 id="tocS_Todo">Todo</h2>
 <!-- backwards compatibility -->
 <a id="schematodo"></a>
@@ -289,6 +522,8 @@ This operation does not require authentication
   "updatedAt": "2026-07-18T00:00:00.000Z"
 }
 ```
+
+Todo（ワイヤ表現）。
 
 ### Properties
 
@@ -319,6 +554,8 @@ This operation does not require authentication
 ]
 ```
 
+Todo 一覧（新しい順）
+
 <h2 id="tocS_InternalServerProblem">InternalServerProblem</h2>
 <!-- backwards compatibility -->
 <a id="schemainternalserverproblem"></a>
@@ -335,6 +572,8 @@ This operation does not require authentication
   "instance": "/api/todos"
 }
 ```
+
+契約違反やその他の想定外のサーバー障害を表す RFC 9457 Problem Details。
 
 ### Properties
 
@@ -371,6 +610,8 @@ This operation does not require authentication
 }
 ```
 
+DB へ到達できないなど、一時的な下流障害を表す RFC 9457 Problem Details。
+
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
@@ -406,6 +647,8 @@ This operation does not require authentication
 }
 ```
 
+対象が存在しないときの RFC 9457 Problem Details。
+
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
@@ -438,6 +681,8 @@ This operation does not require authentication
 }
 ```
 
+検証に失敗したフィールド 1 件。
+
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
@@ -467,6 +712,9 @@ This operation does not require authentication
   ]
 }
 ```
+
+リクエストの検証に失敗したときの RFC 9457 Problem Details。
+`errors` は拡張メンバー — RFC 9457 §3.2 が problem type 独自のメンバー追加を認めている。
 
 ### Properties
 
@@ -500,6 +748,8 @@ This operation does not require authentication
 }
 ```
 
+Todo 作成リクエスト
+
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
@@ -519,6 +769,8 @@ This operation does not require authentication
   "completed": true
 }
 ```
+
+Todo 部分更新リクエスト（タイトル・完了フラグのいずれか、または両方）
 
 ### Properties
 

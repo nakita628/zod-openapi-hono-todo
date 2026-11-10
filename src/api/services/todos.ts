@@ -20,7 +20,7 @@ import { todos } from '@/db'
  *   }
  * ```
  *
- * 発行される SQL（並び順は `idx_todos_createdAt` インデックスが担う。`createdAt` の
+ * 発行される SQL（並び順は `todos_createdAt_idx` インデックスが担う。`createdAt` の
  * ミリ秒が同じ行があっても `id` のタイブレークで順序が安定する）:
  *
  * ```sql
@@ -29,7 +29,7 @@ import { todos } from '@/db'
  * ORDER BY createdAt DESC, id DESC
  * ```
  *
- * @returns Todo の全行。`createdAt` / `updatedAt` は `Date` にデコードされる（timestamp_ms モード）。
+ * @returns Todo の全行。`createdAt` / `updatedAt` は `Date` にデコードされる（Prisma 互換の UTC 日時テキスト列）。
  */
 export function readTodos() {
   return Effect.tryPromise({
@@ -109,11 +109,12 @@ const CreateTodoInput = z
  *
  * 発行される SQL（`id` は JS 側の `$defaultFn(cuid2)` が生成して `?` にバインドされ、
  * `completed` の JS リテラル既定値 `false` も `?` にバインドされる。`createdAt` /
- * `updatedAt` は DB 側の既定式から来る）:
+ * `updatedAt` も JS 側の `utcNow` が同じ時刻を生成し、`+00:00` 付きの ISO テキストとして
+ * `?` にバインドされる）:
  *
  * ```sql
  * INSERT INTO todos (id, title, completed, createdAt, updatedAt)
- * VALUES (?, ?, ?, (unixepoch() * 1000), (unixepoch() * 1000))
+ * VALUES (?, ?, ?, ?, ?)
  * RETURNING *
  * ```
  *

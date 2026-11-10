@@ -2,7 +2,7 @@ node_modules
 .pnpm-store
 
 dist
-.wrangler
+.cloudflare
 .tanstack
 
 .env
@@ -12,12 +12,11 @@ local.db
 .DS_Store
 
 routeTree.gen.ts
-cloudflare-env.d.ts
 
 test-results
 playwright-report
 blob-report
 
-drizzle
+migrations
 
 typedoc

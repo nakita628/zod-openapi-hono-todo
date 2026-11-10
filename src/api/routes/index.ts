@@ -23,6 +23,7 @@ export const TodoSchema = z
       .transform((date) => date.toISOString())
       .openapi({ description: '最終更新日時（ISO 8601）' }),
   })
+  .readonly()
   .openapi({
     required: ['id', 'title', 'completed', 'createdAt', 'updatedAt'],
     description: 'Todo（ワイヤ表現）。',
@@ -38,6 +39,7 @@ export const TodoSchema = z
 
 export const TodoListSchema = z
   .array(TodoSchema)
+  .readonly()
   .openapi({ description: 'Todo 一覧（新しい順）' })
   .openapi('TodoList')
 
@@ -59,6 +61,7 @@ export const InternalServerProblemSchema = z
       .string()
       .openapi({ description: 'この発生事象を識別する URI 参照（リクエストパス）' }),
   })
+  .readonly()
   .openapi({
     required: ['type', 'title', 'status', 'detail', 'instance'],
     description: '契約違反やその他の想定外のサーバー障害を表す RFC 9457 Problem Details。',
@@ -90,6 +93,7 @@ export const ServiceUnavailableProblemSchema = z
       .string()
       .openapi({ description: 'この発生事象を識別する URI 参照（リクエストパス）' }),
   })
+  .readonly()
   .openapi({
     required: ['type', 'title', 'status', 'detail', 'instance'],
     description: 'DB へ到達できないなど、一時的な下流障害を表す RFC 9457 Problem Details。',
@@ -121,6 +125,7 @@ export const NotFoundProblemSchema = z
       .string()
       .openapi({ description: 'この発生事象を識別する URI 参照（リクエストパス）' }),
   })
+  .readonly()
   .openapi({
     required: ['type', 'title', 'status', 'detail', 'instance'],
     description: '対象が存在しないときの RFC 9457 Problem Details。',
@@ -139,6 +144,7 @@ export const FieldErrorSchema = z
     field: z.string().openapi({ description: 'エラーが発生したフィールドのドット区切りパス' }),
     message: z.string().openapi({ description: 'エラーメッセージ' }),
   })
+  .readonly()
   .openapi({
     required: ['field', 'message'],
     description: '検証に失敗したフィールド 1 件。',
@@ -165,8 +171,10 @@ export const ValidationProblemSchema = z
       .openapi({ description: 'この発生事象を識別する URI 参照（リクエストパス）' }),
     errors: z
       .array(FieldErrorSchema)
+      .readonly()
       .openapi({ description: '拡張メンバー: 検証に失敗したフィールドごとに 1 件' }),
   })
+  .readonly()
   .openapi({
     required: ['type', 'title', 'status', 'detail', 'instance', 'errors'],
     description:
@@ -192,6 +200,7 @@ export const CreateTodoRequestSchema = z
       .max(200, { error: 'タイトルは 200 文字以内で入力してください' })
       .openapi({ description: 'タイトル（やること）' }),
   })
+  .readonly()
   .openapi({
     required: ['title'],
     description: 'Todo 作成リクエスト',
@@ -210,6 +219,7 @@ export const UpdateTodoRequestSchema = z
       .openapi({ description: 'タイトル（やること）' }),
     completed: z.boolean().exactOptional().openapi({ description: '完了フラグ' }),
   })
+  .readonly()
   .openapi({
     required: [],
     description: 'Todo 部分更新リクエスト（タイトル・完了フラグのいずれか、または両方）',
@@ -237,7 +247,7 @@ export const getTodosRoute = createRoute({
       content: { 'application/problem+json': { schema: ServiceUnavailableProblemSchema } },
     },
   },
-})
+} as const)
 
 export const postTodosRoute = createRoute({
   method: 'post',
@@ -267,7 +277,7 @@ export const postTodosRoute = createRoute({
       content: { 'application/problem+json': { schema: ServiceUnavailableProblemSchema } },
     },
   },
-})
+} as const)
 
 export const getTodosTodoIdRoute = createRoute({
   method: 'get',
@@ -310,7 +320,7 @@ export const getTodosTodoIdRoute = createRoute({
       content: { 'application/problem+json': { schema: ServiceUnavailableProblemSchema } },
     },
   },
-})
+} as const)
 
 export const deleteTodosTodoIdRoute = createRoute({
   method: 'delete',
@@ -352,7 +362,7 @@ export const deleteTodosTodoIdRoute = createRoute({
       content: { 'application/problem+json': { schema: ServiceUnavailableProblemSchema } },
     },
   },
-})
+} as const)
 
 export const patchTodosTodoIdRoute = createRoute({
   method: 'patch',
@@ -396,4 +406,4 @@ export const patchTodosTodoIdRoute = createRoute({
       content: { 'application/problem+json': { schema: ServiceUnavailableProblemSchema } },
     },
   },
-})
+} as const)

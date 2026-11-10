@@ -4,19 +4,22 @@ export default defineConfig({
   input: 'main.tsp',
   output: 'src/api/routes/index.ts',
   basePath: '/api',
+  pathAlias: '@/api/',
+  readonly: true,
   format: {
     printWidth: 100,
     singleQuote: true,
     semi: false,
     sortImports: {},
   },
+  template: {
+    routeHandler: true,
+  },
+  client: {
+    output: 'src/lib/client.ts',
+  },
   'tanstack-query': {
     output: 'src/hooks/index.ts',
-    import: '@/lib',
-  },
-  template: {
-    pathAlias: '@/api',
-    routeHandler: true,
   },
   exportSchemas: true,
   docs: {

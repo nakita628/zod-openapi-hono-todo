@@ -36,10 +36,8 @@ jobs:
       # --store-dir overrides the devcontainer-specific storeDir in pnpm-workspace.yaml.
       - run: pnpm install --frozen-lockfile --store-dir ~/.pnpm-store
 
-      # Recreate gitignored generated files: cloudflare-env.d.ts (cf-typegen) and
-      # routeTree.gen.ts (emitted by the vite build). Both must exist before type-check.
-      - run: pnpm cf-typegen
-
+      # The vite build recreates the gitignored generated files .cloudflare/types
+      # (@cloudflare/vite-plugin) and routeTree.gen.ts. Both must exist before type-check.
       - run: pnpm build
 
       - run: pnpm check

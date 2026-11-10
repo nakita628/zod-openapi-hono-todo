@@ -1,6 +1,5 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "name": "zod-openapi-hono-todo",
   "entryPoints": [
     "src/api/routes/index.ts",
     "src/api/handlers/todos.ts",

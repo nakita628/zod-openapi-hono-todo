@@ -1,5 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi'
-import { Effect, Match } from 'effect'
+import { Cause, Effect, Match } from 'effect'
 
 import type {
   deleteTodosTodoIdRoute,
@@ -8,10 +8,13 @@ import type {
   patchTodosTodoIdRoute,
   postTodosRoute,
 } from '@/api/routes'
+import { TodoListSchema, TodoSchema } from '@/api/routes'
 import * as TodoUseCase from '@/api/usecases'
 
 /**
- * `GET /todos` ハンドラ。Todo 一覧をまるごと返す。
+ * `GET /todos` ハンドラ。Todo 一覧を新しい順にまるごと返す。
+ *
+ * エラーの対応: DatabaseError → 503。エラーは RFC 9457 の problem document（`application/problem+json`）で返す。
  *
  * ```mermaid
  * sequenceDiagram
@@ -20,36 +23,25 @@ import * as TodoUseCase from '@/api/usecases'
  *   participant U as UseCase
  *   C->>H: GET /todos
  *   H->>U: readTodos()
- *   U-->>H: Todo 一覧
- *   H-->>C: 200 Todos
- *   Note over H: 失敗時の Match.tag: ContractViolationError → 500 / DatabaseError → 503
+ *   alt 成功
+ *     U-->>H: rows
+ *     H-->>C: 200 TodoList
+ *   else D1 の障害
+ *     U-->>H: DatabaseError
+ *     Note over H: cause の連鎖ごとログに出す
+ *     H-->>C: 503 Service Unavailable
+ *   end
+ *   Note over H: 成功時は TodoListSchema.parse でレスポンスを検証する（Date → ISO）。<br/>契約とずれていれば例外になり、app.onError が 500 を返す
  * ```
  */
 export const getTodosRouteHandler: RouteHandler<typeof getTodosRoute> = (c) => {
   return Effect.runPromise(
     Effect.matchEffect(TodoUseCase.readTodos(), {
-      onSuccess: (value) => Effect.succeed(c.json(value, 200)),
+      onSuccess: (value) => Effect.succeed(c.json(TodoListSchema.parse(value), 200)),
       onFailure: (error) =>
         Match.value(error).pipe(
-          Match.tag('ContractViolationError', (error) =>
-            Effect.logError('契約違反', error.message).pipe(
-              Effect.as(
-                c.json(
-                  {
-                    type: '/problems/internal-server-error' as const,
-                    title: 'サーバー内部エラー' as const,
-                    status: 500 as const,
-                    detail: '予期しないエラーが発生しました。',
-                    instance: c.req.path,
-                  },
-                  500,
-                  { 'Content-Type': 'application/problem+json' },
-                ),
-              ),
-            ),
-          ),
           Match.tag('DatabaseError', (error) =>
-            Effect.logError('データベースエラー', error.cause).pipe(
+            Effect.logError('データベースエラー', Cause.fail(error)).pipe(
               Effect.as(
                 c.json(
                   {
@@ -74,23 +66,34 @@ export const getTodosRouteHandler: RouteHandler<typeof getTodosRoute> = (c) => {
 /**
  * `GET /todos/{todoId}` ハンドラ。先にパスパラメータを検証して Todo を 1 件返す。
  *
+ * エラーの対応: NotFoundError → 404 / DatabaseError → 503。エラーは RFC 9457 の problem document（`application/problem+json`）で返す。
+ *
  * ```mermaid
  * sequenceDiagram
  *   participant C as Client
  *   participant H as Handler
  *   participant U as UseCase
  *   C->>H: GET /todos/{todoId}
- *   H->>U: readTodo(data)
- *   U-->>H: Todo
- *   H-->>C: 200 Todo
- *   Note over H: 失敗時の Match.tag: NotFoundError → 404 / ContractViolationError → 500 / DatabaseError → 503
+ *   H->>U: readTodo({ todoId })
+ *   alt 成功
+ *     U-->>H: row
+ *     H-->>C: 200 Todo
+ *   else Todo が無い
+ *     U-->>H: NotFoundError
+ *     H-->>C: 404 Not Found
+ *   else D1 の障害
+ *     U-->>H: DatabaseError
+ *     Note over H: cause の連鎖ごとログに出す
+ *     H-->>C: 503 Service Unavailable
+ *   end
+ *   Note over H: 成功時は TodoSchema.parse でレスポンスを検証する（Date → ISO）。<br/>契約とずれていれば例外になり、app.onError が 500 を返す
  * ```
  */
 export const getTodosTodoIdRouteHandler: RouteHandler<typeof getTodosTodoIdRoute> = (c) => {
   const data = c.req.valid('param')
   return Effect.runPromise(
     Effect.matchEffect(TodoUseCase.readTodo(data), {
-      onSuccess: (value) => Effect.succeed(c.json(value, 200)),
+      onSuccess: (value) => Effect.succeed(c.json(TodoSchema.parse(value), 200)),
       onFailure: (error) =>
         Match.value(error).pipe(
           Match.tag('NotFoundError', (error) =>
@@ -108,25 +111,8 @@ export const getTodosTodoIdRouteHandler: RouteHandler<typeof getTodosTodoIdRoute
               ),
             ),
           ),
-          Match.tag('ContractViolationError', (error) =>
-            Effect.logError('契約違反', error.message).pipe(
-              Effect.as(
-                c.json(
-                  {
-                    type: '/problems/internal-server-error' as const,
-                    title: 'サーバー内部エラー' as const,
-                    status: 500 as const,
-                    detail: '予期しないエラーが発生しました。',
-                    instance: c.req.path,
-                  },
-                  500,
-                  { 'Content-Type': 'application/problem+json' },
-                ),
-              ),
-            ),
-          ),
           Match.tag('DatabaseError', (error) =>
-            Effect.logError('データベースエラー', error.cause).pipe(
+            Effect.logError('データベースエラー', Cause.fail(error)).pipe(
               Effect.as(
                 c.json(
                   {
@@ -151,44 +137,35 @@ export const getTodosTodoIdRouteHandler: RouteHandler<typeof getTodosTodoIdRoute
 /**
  * `POST /todos` ハンドラ。検証済みの JSON ボディから Todo を作成する。
  *
+ * エラーの対応: DatabaseError → 503。エラーは RFC 9457 の problem document（`application/problem+json`）で返す。
+ *
  * ```mermaid
  * sequenceDiagram
  *   participant C as Client
  *   participant H as Handler
  *   participant U as UseCase
  *   C->>H: POST /todos { title }
- *   H->>U: createTodo(data)
- *   U-->>H: 作成された Todo
- *   H-->>C: 201 Todo
- *   Note over H: 失敗時の Match.tag: ContractViolationError → 500 / DatabaseError → 503
+ *   H->>U: createTodo({ title })
+ *   alt 成功
+ *     U-->>H: 作成された row
+ *     H-->>C: 201 Todo
+ *   else D1 の障害
+ *     U-->>H: DatabaseError
+ *     Note over H: cause の連鎖ごとログに出す
+ *     H-->>C: 503 Service Unavailable
+ *   end
+ *   Note over H: 成功時は TodoSchema.parse でレスポンスを検証する（Date → ISO）。<br/>契約とずれていれば例外になり、app.onError が 500 を返す
  * ```
  */
 export const postTodosRouteHandler: RouteHandler<typeof postTodosRoute> = (c) => {
   const data = c.req.valid('json')
   return Effect.runPromise(
     Effect.matchEffect(TodoUseCase.createTodo(data), {
-      onSuccess: (value) => Effect.succeed(c.json(value, 201)),
+      onSuccess: (value) => Effect.succeed(c.json(TodoSchema.parse(value), 201)),
       onFailure: (error) =>
         Match.value(error).pipe(
-          Match.tag('ContractViolationError', (error) =>
-            Effect.logError('契約違反', error.message).pipe(
-              Effect.as(
-                c.json(
-                  {
-                    type: '/problems/internal-server-error' as const,
-                    title: 'サーバー内部エラー' as const,
-                    status: 500 as const,
-                    detail: '予期しないエラーが発生しました。',
-                    instance: c.req.path,
-                  },
-                  500,
-                  { 'Content-Type': 'application/problem+json' },
-                ),
-              ),
-            ),
-          ),
           Match.tag('DatabaseError', (error) =>
-            Effect.logError('データベースエラー', error.cause).pipe(
+            Effect.logError('データベースエラー', Cause.fail(error)).pipe(
               Effect.as(
                 c.json(
                   {
@@ -214,23 +191,34 @@ export const postTodosRouteHandler: RouteHandler<typeof postTodosRoute> = (c) =>
  * `PATCH /todos/{todoId}` ハンドラ。パスパラメータと部分 JSON ボディを合わせて
  * 更新を適用する。
  *
+ * エラーの対応: NotFoundError → 404 / DatabaseError → 503。エラーは RFC 9457 の problem document（`application/problem+json`）で返す。
+ *
  * ```mermaid
  * sequenceDiagram
  *   participant C as Client
  *   participant H as Handler
  *   participant U as UseCase
  *   C->>H: PATCH /todos/{todoId} { title?, completed? }
- *   H->>U: updateTodo(data)
- *   U-->>H: 更新された Todo
- *   H-->>C: 200 Todo
- *   Note over H: 失敗時の Match.tag: NotFoundError → 404 / ContractViolationError → 500 / DatabaseError → 503
+ *   H->>U: updateTodo({ todoId, title?, completed? })
+ *   alt 成功
+ *     U-->>H: 更新された row
+ *     H-->>C: 200 Todo
+ *   else Todo が無い
+ *     U-->>H: NotFoundError
+ *     H-->>C: 404 Not Found
+ *   else D1 の障害
+ *     U-->>H: DatabaseError
+ *     Note over H: cause の連鎖ごとログに出す
+ *     H-->>C: 503 Service Unavailable
+ *   end
+ *   Note over H: 成功時は TodoSchema.parse でレスポンスを検証する（Date → ISO）。<br/>契約とずれていれば例外になり、app.onError が 500 を返す
  * ```
  */
 export const patchTodosTodoIdRouteHandler: RouteHandler<typeof patchTodosTodoIdRoute> = (c) => {
   const data = { ...c.req.valid('param'), ...c.req.valid('json') }
   return Effect.runPromise(
     Effect.matchEffect(TodoUseCase.updateTodo(data), {
-      onSuccess: (value) => Effect.succeed(c.json(value, 200)),
+      onSuccess: (value) => Effect.succeed(c.json(TodoSchema.parse(value), 200)),
       onFailure: (error) =>
         Match.value(error).pipe(
           Match.tag('NotFoundError', (error) =>
@@ -248,25 +236,8 @@ export const patchTodosTodoIdRouteHandler: RouteHandler<typeof patchTodosTodoIdR
               ),
             ),
           ),
-          Match.tag('ContractViolationError', (error) =>
-            Effect.logError('契約違反', error.message).pipe(
-              Effect.as(
-                c.json(
-                  {
-                    type: '/problems/internal-server-error' as const,
-                    title: 'サーバー内部エラー' as const,
-                    status: 500 as const,
-                    detail: '予期しないエラーが発生しました。',
-                    instance: c.req.path,
-                  },
-                  500,
-                  { 'Content-Type': 'application/problem+json' },
-                ),
-              ),
-            ),
-          ),
           Match.tag('DatabaseError', (error) =>
-            Effect.logError('データベースエラー', error.cause).pipe(
+            Effect.logError('データベースエラー', Cause.fail(error)).pipe(
               Effect.as(
                 c.json(
                   {
@@ -291,16 +262,26 @@ export const patchTodosTodoIdRouteHandler: RouteHandler<typeof patchTodosTodoIdR
 /**
  * `DELETE /todos/{todoId}` ハンドラ。Todo を 1 件削除し、ボディ無しの 204 を返す。
  *
+ * エラーの対応: NotFoundError → 404 / DatabaseError → 503。エラーは RFC 9457 の problem document（`application/problem+json`）で返す。
+ *
  * ```mermaid
  * sequenceDiagram
  *   participant C as Client
  *   participant H as Handler
  *   participant U as UseCase
  *   C->>H: DELETE /todos/{todoId}
- *   H->>U: deleteTodo(data)
- *   U-->>H: void
- *   H-->>C: 204 No Content
- *   Note over H: 失敗時の Match.tag: NotFoundError → 404 / DatabaseError → 503
+ *   H->>U: deleteTodo({ todoId })
+ *   alt 成功
+ *     U-->>H: 完了
+ *     H-->>C: 204 No Content
+ *   else Todo が無い
+ *     U-->>H: NotFoundError
+ *     H-->>C: 404 Not Found
+ *   else D1 の障害
+ *     U-->>H: DatabaseError
+ *     Note over H: cause の連鎖ごとログに出す
+ *     H-->>C: 503 Service Unavailable
+ *   end
  * ```
  */
 export const deleteTodosTodoIdRouteHandler: RouteHandler<typeof deleteTodosTodoIdRoute> = (c) => {
@@ -314,9 +295,9 @@ export const deleteTodosTodoIdRouteHandler: RouteHandler<typeof deleteTodosTodoI
             Effect.succeed(
               c.json(
                 {
-                  type: '/problems/not-found' as const,
-                  title: '見つかりません' as const,
-                  status: 404 as const,
+                  type: '/problems/not-found',
+                  title: '見つかりません',
+                  status: 404,
                   detail: error.message,
                   instance: c.req.path,
                 },
@@ -326,13 +307,13 @@ export const deleteTodosTodoIdRouteHandler: RouteHandler<typeof deleteTodosTodoI
             ),
           ),
           Match.tag('DatabaseError', (error) =>
-            Effect.logError('データベースエラー', error.cause).pipe(
+            Effect.logError('データベースエラー', Cause.fail(error)).pipe(
               Effect.as(
                 c.json(
                   {
-                    type: '/problems/service-unavailable' as const,
-                    title: 'サービス利用不可' as const,
-                    status: 503 as const,
+                    type: '/problems/service-unavailable',
+                    title: 'サービス利用不可',
+                    status: 503,
                     detail: 'サービスが一時的に利用できません。時間をおいて再試行してください。',
                     instance: c.req.path,
                   },

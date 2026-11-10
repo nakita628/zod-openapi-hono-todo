@@ -8,11 +8,12 @@ import type { OxlintConfig, OxlintOverride } from 'vite-plus/lint'
 
 const generated = [
   '**/*.gen.ts',
-  'cloudflare-env.d.ts',
   'src/api/routes/index.ts',
   'src/api/handlers/index.ts',
   'src/db/schema.ts',
   'src/hooks/index.ts',
+  'src/lib/client.ts',
+  'src/lib/index.ts',
 ]
 
 const dirGlobs = (...names: string[]): string[] =>
@@ -30,7 +31,7 @@ const importBoundary = (files: string[], group: string[], message: string): Oxli
 const lint: OxlintConfig = {
   plugins: ['eslint', 'typescript', 'unicorn', 'oxc', 'import', 'react', 'jsx-a11y'],
   categories: { correctness: 'error', suspicious: 'error', perf: 'error' },
-  ignorePatterns: ['**/dist/**', '**/.wrangler/**', '**/drizzle/**', ...generated],
+  ignorePatterns: ['**/dist/**', '**/.cloudflare/**', '**/migrations/**', ...generated],
   rules: {
     'react/react-in-jsx-scope': 'off', // automatic JSX runtime
     'no-shadow': 'off', // Effect の Match.tag が意図的にシャドウする
@@ -83,7 +84,7 @@ const lint: OxlintConfig = {
 }
 
 const fmt: OxfmtConfig = {
-  ignorePatterns: ['**/dist/**', '**/.wrangler/**', 'drizzle/**', 'api.md', ...generated],
+  ignorePatterns: ['**/dist/**', '**/.cloudflare/**', 'migrations/**', 'api.md', ...generated],
   printWidth: 100,
   singleQuote: true,
   semi: false,

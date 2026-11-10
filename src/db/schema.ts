@@ -1,6 +1,28 @@
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
-import { sql } from 'drizzle-orm'
+import { customType, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createId } from '@paralleldrive/cuid2'
+
+const utcDateTime = customType<{ data: Date; driverData: string | number }>({
+  dataType: () => 'datetime',
+  toDriver: (value) => value.toISOString().replace('Z', '+00:00'),
+  fromDriver: (value) => {
+    if (typeof value === 'number' || /^-?\d+$/u.test(value)) return new Date(Number(value))
+    const iso = value.replace(' ', 'T').replace(/ (?=[+-]\d\d:?\d\d$)/u, '')
+    return new Date(/T[\d:.]+$/u.test(iso) ? `${iso}Z` : iso)
+  },
+})
+
+const utcNow = (() => {
+  let now: Date | undefined
+  return () => {
+    if (now === undefined) {
+      now = new Date()
+      queueMicrotask(() => {
+        now = undefined
+      })
+    }
+    return now
+  }
+})()
 
 export const todos = sqliteTable(
   'todos',
@@ -10,13 +32,8 @@ export const todos = sqliteTable(
       .$defaultFn(() => createId()),
     title: text('title').notNull(),
     completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
-    createdAt: integer('createdAt', { mode: 'timestamp_ms' })
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
-    updatedAt: integer('updatedAt', { mode: 'timestamp_ms' })
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`)
-      .$onUpdate(() => new Date()),
+    createdAt: utcDateTime('createdAt').notNull().$defaultFn(utcNow),
+    updatedAt: utcDateTime('updatedAt').notNull().$onUpdate(utcNow),
   },
-  (table) => [index('idx_todos_createdAt').on(table.createdAt)],
+  (table) => [index('todos_createdAt_idx').on(table.createdAt)],
 )
