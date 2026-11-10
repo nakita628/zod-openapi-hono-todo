@@ -1,4 +1,4 @@
-# zod-openapi-hono-todo
+# Zod OpenAPI Hono Todo Application
 
 TypeSpec と Prisma を正典に、API とデータベース定義を生成する Todo アプリ。
 Cloudflare Workers + D1 + React SPA。
